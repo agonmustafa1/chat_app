@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="chat-container">
+    <h2>Welcome, {{ username }}</h2>
+    <div id="messages">
+        <!-- Example Message Structure -->
+        <div class="message sent message-placeholder">2</div>
+        <div class="message received message-placeholder">2</div>
+    </div>
+    <form id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit">Send</button>
+    </form>
+</div>
+<select id="room-select">
+    <option value="public">Public</option>
+    <option value="room1">Room 1</option>
+    <option value="room2">Room 2</option>
+</select>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    const roomSelect = document.getElementById('room-select');
+    roomSelect.addEventListener('change', () => {
+        const room = roomSelect.value;
+        socket.emit('join', { room });
+        document.getElementById('messages').innerHTML = ''; // Clear messages
+    });
+
+    socket.on('connect', () => {
+        const room = 'public'; // Default room
+        socket.emit('join', { room });
+    });
+
+    socket.on('joined', (data) => {
+        const messagesDiv = document.getElementById('messages');
+        const newMessage = document.createElement('p');
+        newMessage.textContent = `${data.username} joined the chat`;
+        messagesDiv.appendChild(newMessage);
+    });
+
+    // Receive messages from the server
+    socket.on('message', (data) => {
+        const messagesDiv = document.getElementById('messages');
+        const newMessage = document.createElement('div');
+        const isSentByCurrentUser = data.username === "{{ username }}";
+        newMessage.className = `message ${isSentByCurrentUser ? 'sent' : 'received'}`;
+        newMessage.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+        messagesDiv.appendChild(newMessage);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+    });
+
+    socket.on('messages', function(data) {
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML = ''; // Clear existing messages
+        data.messages.forEach(function(msg) {
+            const newMessage = document.createElement('div');
+            const isSentByCurrentUser = msg.username === "{{ username }}";
+            newMessage.className = `message ${isSentByCurrentUser ? 'sent' : 'received'}`;
+            newMessage.innerHTML = `<strong>${msg.username}:</strong> ${msg.message} <small>(${new Date(msg.timestamp).toLocaleTimeString()})</small>`;
+            messagesDiv.appendChild(newMessage);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+    });
+
+    // Send messages to the server
+    const form = document.getElementById('message-form');
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const messageInput = document.getElementById('message-input');
+        const room = roomSelect.value;
+        const message = messageInput.value;
+        const timestamp = new Date().toISOString(); // Add a timestamp
+        socket.emit('send_message', { message , room , timestamp});
+        messageInput.value = ''; // Clear input
+    });
+</script>
+{% endblock %}
