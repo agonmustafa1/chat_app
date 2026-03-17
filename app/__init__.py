@@ -17,7 +17,7 @@ room_messages = {
 
 def create_app():
     app = Flask(__name__)
-    sslify = SSLify(app)  # This will redirect all HTTP traffic to HTTPS
+    sslify = SSLify(app)  #redirect  HTTP to HTTPS
     app.config['SECRET_KEY'] = Config.SECRET_KEY
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
     
